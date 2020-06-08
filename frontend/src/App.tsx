@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route } from "react-router-dom";
 import Quiz from "./Pages/Quiz";
 import { ThemeProvider } from "emotion-theming";
 import { ThemePrimary } from "./theme";
+import { Layout } from "./Layout/Layout";
 
 function App() {
   return (
@@ -13,7 +14,7 @@ function App() {
             <Quiz></Quiz>
           </Route>
           <Route exact path="/">
-            <h1>Site under construction</h1>
+            <Layout></Layout>
           </Route>
         </Router>
       </div>

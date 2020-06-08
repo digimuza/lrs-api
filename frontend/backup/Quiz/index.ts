@@ -1,0 +1,1 @@
+export { Quiz as default } from './main'

@@ -1,4 +1,45 @@
-export interface Sessions {
+import { XMLObject } from "iterparse";
+
+
+export namespace RawMemberOfParlament {
+    export interface Parlament extends XMLObject {
+        $name:      string;
+        Kontaktai?: KontaktaiElement[] | KontaktaiElement;
+        Pareigos:   Pareigo[];
+        $attrs:     Attrs;
+    }
+    export interface Attrs extends Record<string, string> {
+        asmens_id:           string;
+        vardas:              string;
+        pavardė:             string;
+        lytis:               string;
+        data_nuo:            string;
+        data_iki:            string;
+        iškėlusi_partija:    string;
+        išrinkimo_būdas:     string;
+        kadencijų_skaičius:  string;
+        biografijos_nuoroda: string;
+    }
+    
+    export interface KontaktaiElement {
+        rūšis:   string;
+        reikšmė: string;
+    }
+    
+    export interface Pareigo {
+        padalinio_id?:                     string;
+        padalinio_pavadinimas?:            string;
+        pareigos:                          string;
+        data_nuo:                          Date;
+        data_iki:                          string;
+        parlamentinės_grupės_id?:          string;
+        parlamentinės_grupės_pavadinimas?: string;
+    }
+    
+}
+ 
+
+export interface Sessions extends XMLObject {
     $name: string;
     SeimoSesija: SeimoSesija[];
     $attrs: {
@@ -14,7 +55,7 @@ export interface SeimoSesija {
     data_iki: string;
 }
 
-export interface Meetings {
+export interface Meetings extends XMLObject {
     $name: string;
     Protokolas: string;
     Stenograma: string;
@@ -34,7 +75,7 @@ export interface Video {
 }
 
 
-export interface Meeting {
+export interface Meeting extends XMLObject {
     $name: string;
     pavadinimas: string;
     nr: string;
