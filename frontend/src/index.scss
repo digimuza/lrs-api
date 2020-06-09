@@ -1,1 +1,7 @@
-@import "./Styles/main.scss"
+@import "./Styles/main.scss";
+
+body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}

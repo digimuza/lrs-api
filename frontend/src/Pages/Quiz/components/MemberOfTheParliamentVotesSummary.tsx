@@ -1,11 +1,24 @@
-import React, { Fragment, useState } from "react";
-import { Box, Flex, Text, Card, Image, Heading } from "rebass";
+import React, { Fragment, useState, PropsWithChildren } from "react";
 import { Summary } from "../calculations";
+import {
+  Card,
+  Avatar,
+  Progress,
+  List,
+  Button,
+  Layout,
+  Typography,
+  PageHeader,
+  Tag,
+  Table,
+} from "antd";
 import { Scroll, Frame, Page } from "framer";
 import { MainData, VoteTicket } from "../types";
 import { getMembers } from "../data";
-
-function Row(props: {
+import { motion } from "framer-motion";
+import { Grid, Row, Col } from "react-flexbox-grid";
+import { Flex, Heading } from "rebass";
+function ParliamentList(props: {
   summary: Summary;
   min: number;
   max: number;
@@ -14,59 +27,34 @@ function Row(props: {
 }) {
   const { summary, index } = props;
   return (
-    <Card
-      width={"100vw"}
-      m={0}
-      sx={{
-        ":hover": {
-          cursor: "pointer",
-          background: "#eeeeee",
-        },
-      }}
+    <List.Item
+      actions={[
+        <div style={{ width: 200 }}>
+          <Progress percent={Math.round(summary.score/props.max * 100)}></Progress>
+        </div>,
+        <Button>Daugiau</Button>,
+      ]}
+      onClick={() => props.onClick(summary)}
     >
-      <Flex
-        onClick={() => {
-          props.onClick(props.summary);
-        }}
-      >
-        <Flex justifyContent={"center"} alignItems={"center"} width={1 / 8}>
-          <Image
+      <List.Item.Meta
+        avatar={
+          <Avatar
             src={
               "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=2048&q=20"
             }
-            sx={{
-              width: 48,
-              height: 48,
-              borderRadius: 5,
-            }}
-          />
-        </Flex>
-        <Flex
-          px={1}
-          justifyContent={"center"}
-          alignItems={"flex-start"}
-          width={6 / 8}
-          flexDirection={"column"}
-        >
-          <Text
-            py={1}
-            textAlign={"start"}
-          >{`${summary.vardas} ${summary.pavardė}`}</Text>
-          <Box
-            backgroundColor={"gray"}
-            width={1}
-            height={11}
-            sx={{ borderRadius: 5, overflow: "hidden" }}
           >
-            <Box
-              width={`${props.summary.score * 100}%`}
-              height={11}
-              backgroundColor={"#4fc3f7"}
-            ></Box>
-          </Box>
-        </Flex>
-      </Flex>
-    </Card>
+            {summary.vardas.slice(0, 1)}
+          </Avatar>
+        }
+        description={
+          <span>
+            <b>Frakcija:</b>
+            {` ${summary.frakcija}`}{" "}
+          </span>
+        }
+        title={`${summary.vardas} ${summary.pavardė}`}
+      ></List.Item.Meta>
+    </List.Item>
   );
 }
 
@@ -83,6 +71,119 @@ function unParseVote(vote: VoteTicket): string {
   }
 }
 
+function ParliamentVoteSummary(props: {
+  title: string;
+  userVotes: Record<string, VoteTicket>;
+  items: ReadonlyArray<Summary>;
+  data: Record<string, MainData>;
+  setPage: (page: number) => void;
+  selectedParliament: string | null;
+  setSelectedParliament: (parliament: string | null) => void;
+}) {
+  const members = getMembers();
+  const { selectedParliament, setPage, setSelectedParliament } = props;
+  if (selectedParliament == null) return null;
+  const parliament = members[selectedParliament];
+
+  const columns = [
+    {
+      title: "Įstatymas",
+      dataIndex: "order",
+      width: 400,
+      key: "order",
+      render: (text: string) => <span>{text}</span>,
+    },
+    {
+      title: "Vartotojas",
+      dataIndex: "user_vote",
+      key: "user_vote",
+      render: (text: JSX.Element) => text,
+    },
+    {
+      title: "Politikas",
+      dataIndex: "politic_vote",
+      key: "politic_vote",
+      render: (text: JSX.Element) => text,
+    },
+  ];
+
+  const generatePoliticTag = (xDep: MainData) => {
+    const userVote = props.userVotes[xDep.voteId];
+    const politicVote =
+      xDep.votes.find((q) => q.asmens_id === selectedParliament)
+        ?.kaip_balsavo || "Nedalivavo";
+    if (politicVote === "Nedalivavo") {
+      return <Tag>Nedalivavo</Tag>;
+    }
+    if (politicVote === "Už") {
+      if (userVote === VoteTicket.YES) return <Tag color={"green"}>Už</Tag>;
+      if (userVote === VoteTicket.NO) return <Tag color={"red"}>Už</Tag>;
+      if (userVote === VoteTicket.IDLE) return <Tag color={"green"}>Už</Tag>;
+      if (userVote == null) return <Tag color={"green"}>Už</Tag>;
+    }
+
+    if (politicVote === "Prieš") {
+      if (userVote === VoteTicket.YES) return <Tag color={"red"}>Prieš</Tag>;
+      if (userVote === VoteTicket.NO) return <Tag color={"green"}>Prieš</Tag>;
+      if (userVote === VoteTicket.IDLE) return <Tag color={"green"}>Prieš</Tag>;
+      if (userVote == null) return <Tag color={"green"}>Prieš</Tag>;
+    }
+
+    if (politicVote === "Nedalivavo") {
+      return <Tag color={"warning"}>{politicVote}</Tag>;
+    }
+
+    return <Tag>{politicVote}</Tag>;
+  };
+
+  const data = Object.values(props.data).map((c, index) => {
+    return {
+      key: index,
+      user_vote: (
+        <Tag color={"green"}>
+          {unParseVote(props.userVotes[c.voteId]) || "Susilaikė"}
+        </Tag>
+      ),
+      order: c.order,
+      politic_vote: generatePoliticTag(c),
+    };
+  });
+
+  return (
+    <LayoutContainer
+      header={
+        <PageHeader
+          title={`${parliament.vardas} ${parliament.pavardė}`}
+          onBack={() => setPage(0)}
+        ></PageHeader>
+      }
+    >
+      <Table columns={columns} dataSource={data} />
+    </LayoutContainer>
+  );
+}
+
+function LayoutContainer(props: PropsWithChildren<{ header: JSX.Element }>) {
+  return (
+    <Scroll position={"relative"} width={"100%"} height={"100vh"}>
+      <Grid>
+        <Row>
+          <Col xl={3}></Col>
+          <Col xl={6}>
+            <Layout>
+              {props.header}
+              <Layout.Content style={{ padding: 20 }}>
+                {props.children}
+              </Layout.Content>
+            </Layout>
+          </Col>
+          <Col xl={3}></Col>
+        </Row>
+      </Grid>
+    </Scroll>
+  );
+}
+
 function Block(props: {
   title: string;
   userVotes: Record<string, VoteTicket>;
@@ -97,119 +198,33 @@ function Block(props: {
   );
   const members = getMembers();
   return (
-    <Page currentPage={page} dragEnabled={false} width={"100%"} height={"100%"}>
-      <Scroll position={'relative'} height={"100vh"} width={"100vw"}>
-        <Flex flexDirection={"column"} px={3}>
-          <Card width={"100vw"}>
-            <Heading>Rezultatai</Heading>
-          </Card>
-          {props.items.map((summary, index) => (
-            <Row
-              onClick={(summary) => {
-                setSelectedParliament(summary.asmens_id);
-                setPage(1);
-              }}
-              index={index}
-              summary={summary}
-              min={min}
-              max={max}
-            ></Row>
-          ))}
-        </Flex>
-      </Scroll>
-      <Scroll height={"100vh"} width={"100vw"}>
-        <Flex flexDirection={"column"} width={"100vw"}>
-          <Card p={2}>
-            <Flex justifyContent={"flex-start"} alignItems={"center"}>
-              <span
-                onClick={() => {
-                  setSelectedParliament(null);
-                  setPage(0);
-                }}
-                className="material-icons"
-                style={{
-                  cursor: "pointer",
-                  fontSize: "36px",
-                }}
-              >
-                keyboard_backspace
-              </span>
-
-              {selectedParliament != null ? (
-                <Heading fontSize={2} px={2}>
-                  {`${members[selectedParliament].vardas} ${members[selectedParliament].pavardė}`}
-                </Heading>
-              ) : null}
-            </Flex>
-          </Card>
-          <Flex flexDirection={"column"}>
-            <Flex flexDirection={"column"}>
-              <Card>
-                <Flex>
-                  <Flex
-                    alignItems={"center"}
-                    justifyContent={"flex-start"}
-                    width={2 / 4}
-                  >
-                    <Text>Įstatymas</Text>
-                  </Flex>
-                  <Flex
-                    alignItems={"center"}
-                    justifyContent={"center"}
-                    width={1 / 4}
-                  >
-                    <Text textAlign={"center"}>Vartotojas</Text>
-                  </Flex>
-                  <Flex
-                    alignItems={"center"}
-                    justifyContent={"center"}
-                    width={1 / 4}
-                  >
-                    <Text>Politikas</Text>
-                  </Flex>
-                </Flex>
-              </Card>
-            </Flex>
-            {Object.values(props.data).map((v) => {
-              return (
-                <Flex flexDirection={"column"}>
-                  <Card>
-                    <Flex>
-                      <Flex
-                        alignItems={"center"}
-                        justifyContent={"flex-start"}
-                        width={2 / 4}
-                      >
-                        <Text>{v.order}</Text>
-                      </Flex>
-                      <Flex
-                        alignItems={"center"}
-                        justifyContent={"center"}
-                        width={1 / 4}
-                      >
-                        <Text textAlign={"center"}>
-                          {unParseVote(props.userVotes[v.voteId])}
-                        </Text>
-                      </Flex>
-                      <Flex
-                        alignItems={"center"}
-                        justifyContent={"center"}
-                        width={1 / 4}
-                      >
-                        <Text>
-                          {v.votes.find(
-                            (c) => selectedParliament === c.asmens_id
-                          )?.kaip_balsavo || "Nedalivavo"}
-                        </Text>
-                      </Flex>
-                    </Flex>
-                  </Card>
-                </Flex>
-              );
-            })}
-          </Flex>
-        </Flex>
-      </Scroll>
+    <Page
+      position={"relative"}
+      currentPage={page}
+      dragEnabled={false}
+      width={"100%"}
+      height={"100vh"}
+    >
+      <LayoutContainer header={<PageHeader title={"Rezultatai"}></PageHeader>}>
+        {props.items.map((summary, index) => (
+          <ParliamentList
+            onClick={(summary) => {
+              setSelectedParliament(summary.asmens_id);
+              setPage(1);
+            }}
+            index={index}
+            summary={summary}
+            min={min}
+            max={max}
+          ></ParliamentList>
+        ))}
+      </LayoutContainer>
+      <ParliamentVoteSummary
+        setPage={setPage}
+        selectedParliament={selectedParliament}
+        setSelectedParliament={setSelectedParliament}
+        {...props}
+      ></ParliamentVoteSummary>
     </Page>
   );
 }
@@ -220,18 +235,11 @@ export function MemberOfTheParliamentVotesSummary(props: {
   data: Record<string, MainData>;
 }) {
   return (
-    <Flex
-      width={"100%"}
-      height={"100%"}
-      alignItems={"center"}
-      justifyContent={"center"}
-    >
-      <Block
-        userVotes={props.userVotes}
-        data={props.data}
-        title={"Labiausiais atitike politikai"}
-        items={props.result}
-      ></Block>
-    </Flex>
+    <Block
+      userVotes={props.userVotes}
+      data={props.data}
+      title={"Labiausiais atitike politikai"}
+      items={props.result}
+    ></Block>
   );
 }

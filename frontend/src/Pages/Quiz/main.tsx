@@ -11,43 +11,41 @@ export function Quiz() {
   const data = getQuestions();
   const members = getMembers();
   const [votes, setVotes] = useState({} as Record<string, VoteTicket>);
-  const [page, setPages] = useState(14);
+  const [page, setPages] = useState(0);
   return (
-    <Fragment>
-      <Page
-        defaultEffect={"none"}
-        dragEnabled={false}
-        currentPage={page}
-        width={"100vh"}
-        height={"100vh"}
-      >
-        {Object.values(data).map((props, index) => {
-          return (
-            <Question
-              index={index}
-              current={page}
-              data={props}
-              key={props.voteId}
-              onSubmit={({ id, vote }) => {
-                setVotes({
-                  ...votes,
-                  [id]: vote,
-                });
-                setPages(page + 1);
-                return;
-              }}
-            ></Question>
-          );
-        })}
-        <Frame width={"100vh"} height={"100vw"}>
-          <MemberOfTheParliamentVotesSummary
-            userVotes={votes}
-            {...calculateVotingScores(votes, data, members)}
-            data={data}
-          ></MemberOfTheParliamentVotesSummary>
-          {/* <FreactionsSummary {...calculateFractions(votes)}></FreactionsSummary> */}
-        </Frame>
-      </Page>
-    </Fragment>
+    <Page
+      top={0}
+      left={0}
+      defaultEffect={"none"}
+      backgroundColor={"white"}
+      dragEnabled={false}
+      currentPage={page}
+      width={"100%"}
+      height={"100%"}
+    >
+      {Object.values(data).map((props, index) => {
+        return (
+          <Question
+            index={index}
+            current={page}
+            data={props}
+            key={props.voteId}
+            onSubmit={({ id, vote }) => {
+              setVotes({
+                ...votes,
+                [id]: vote,
+              });
+              setPages(page + 1);
+              return;
+            }}
+          ></Question>
+        );
+      })}
+      <MemberOfTheParliamentVotesSummary
+        userVotes={votes}
+        {...calculateVotingScores(votes, data, members)}
+        data={data}
+      ></MemberOfTheParliamentVotesSummary>
+    </Page>
   );
 }

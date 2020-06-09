@@ -9,9 +9,9 @@ export const ThemePrimary = {
       highlight: 'hsla(205, 100%, 40%, 0.125)',
     },
     fonts: {
-      body: 'system-ui, sans-serif',
-      heading: 'inherit',
-      monospace: 'Menlo, monospace',
+      body: 'Roboto, sans-serif',
+      heading: 'Roboto, sans-serif',
+      monospace: 'Roboto, sans-serif',
     },
     fontSizes: [
       12, 14, 16, 20, 24, 32, 48, 64, 96
