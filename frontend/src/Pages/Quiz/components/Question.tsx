@@ -1,108 +1,113 @@
 import React, { useRef } from "react";
-import { Box, Heading, Flex, Button, Text, Card } from "rebass";
-import { Frame } from "framer";
+import { Scroll } from "framer";
 import { BehaviorSubject } from "rxjs";
 import { YouTubeView } from "../../../Shared/YoutubeVideo";
-import { MainData, VoteTicket } from "../types";
-
+import { VoteTicket } from "../types";
+import { VotingInfo } from "../../../database";
+import { Row, Col, Card, Typography, Button, Collapse } from "antd";
 export function Question(props: {
-  data: MainData;
+  data: VotingInfo;
   onSubmit: (value: { id: string; vote: VoteTicket }) => void;
   index: number;
   current: number;
 }) {
   const ref = useRef(new BehaviorSubject<boolean>(false));
+
+  const showVideoIf =
+    props.current - 1 === props.index ||
+    props.current === props.index ||
+    props.current + 1 === props.index;
+
   return (
-    <Frame position={'relative'} width={"100%"} height={"100%"}>
-      <Flex
-        width={"100%"}
-        height={"100%"}
-        alignItems={"center"}
-        justifyContent={"center"}
-      >
-        <Card p={0} width={"100%"}>
-          <Flex
-            width={"100%"}
-            height={"100%"}
-            alignItems={"center"}
-            justifyContent={"center"}
+    <Scroll position={"relative"} width={"100%"} height={"100vh"}>
+      <Row justify={"center"} align={"middle"}>
+        <Col xl={6}></Col>
+        <Col xl={12}>
+          <Card
+            cover={
+              props.data.youtubeUrl ? (
+                showVideoIf ? (
+                  <YouTubeView
+                    play={ref.current}
+                    url={props.data.youtubeUrl}
+                  ></YouTubeView>
+                ) : null
+              ) : null
+            }
           >
-            <Box width={[1, 2 / 3]}>
-              {props.current + 1 >= props.index ? (
-                <YouTubeView
-                  play={ref.current}
-                  url={props.data.youtubeUrl}
-                ></YouTubeView>
-              ) : null}
-            </Box>
-          </Flex>
-          <Box px={3}>
-            <Heading textAlign={"center"} p={1} color="primary">
-              {props.data.order}
-            </Heading>
-            <Text textAlign={"center"}>{props.data.fullOrder}</Text>
-          </Box>
-          <Flex m={1} p={1} alignItems={"center"} justifyContent={"center"}>
-            <Box p={1}>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  ref.current.next(false);
-                  props.onSubmit({
-                    id: props.data.voteId,
-                    vote: VoteTicket.YES,
-                  });
-                }}
-              >
-                Už
-              </Button>
-            </Box>
-            <Box p={1}>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  ref.current.next(false);
-                  props.onSubmit({
-                    id: props.data.voteId,
-                    vote: VoteTicket.IDLE,
-                  });
-                }}
-              >
-                Susilaikau
-              </Button>
-            </Box>
-            <Box p={1}>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  ref.current.next(false);
-                  props.onSubmit({
-                    id: props.data.voteId,
-                    vote: VoteTicket.NO,
-                  });
-                }}
-              >
-                Prieš
-              </Button>
-            </Box>
-          </Flex>
-        </Card>
-        {/* <Box>
-          <Heading p={1} fontSize={[4]} color="primary">
-            {props.data.order}
-          </Heading>
-          <Text>{props.data.fullOrder}</Text>
-          <Flex p={1} m={2} alignItems={"center"} justifyContent={"center"}>
-            <Box width={1 / 2}>
-              <YoutubeView
-                play={ref.current}
-                url={props.data.youtubeUrl}
-              ></YoutubeView>
-            </Box>
-          </Flex>
-          
-        </Box> */}
-      </Flex>
-    </Frame>
+            <Typography.Title>{props.data.order}</Typography.Title>
+            <Collapse bordered={false}>
+              <Collapse.Panel header={"Daugiau informacijos"} key="1">
+                <Typography.Text>{props.data.fullOrder}</Typography.Text>
+              </Collapse.Panel>
+            </Collapse>
+
+            <Row
+              style={{ marginTop: 10 }}
+              gutter={[8, 8]}
+              justify={"center"}
+              align={"middle"}
+            >
+              <Col span={8}>
+                <Button
+                  style={{
+                    width: "100%",
+                    height: 80,
+                    background: "green",
+                    color: "white",
+                  }}
+                  onClick={() => {
+                    ref.current.next(false);
+                    props.onSubmit({
+                      id: props.data.voteId,
+                      vote: VoteTicket.FOR,
+                    });
+                  }}
+                >
+                  <b>Už</b>
+                </Button>
+              </Col>
+              <Col span={8}>
+                <Button
+                  style={{
+                    width: "100%",
+                    height: 80,
+                  }}
+                  onClick={() => {
+                    ref.current.next(false);
+                    props.onSubmit({
+                      id: props.data.voteId,
+                      vote: VoteTicket.IDLE,
+                    });
+                  }}
+                >
+                  <b>Susilaikau</b>
+                </Button>
+              </Col>
+              <Col span={8}>
+                <Button
+                  style={{
+                    width: "100%",
+                    height: 80,
+                    background: "red",
+                    color: "white",
+                  }}
+                  onClick={() => {
+                    ref.current.next(false);
+                    props.onSubmit({
+                      id: props.data.voteId,
+                      vote: VoteTicket.AGAINST,
+                    });
+                  }}
+                >
+                  <b>Prieš</b>
+                </Button>
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+        <Col xl={6}></Col>
+      </Row>
+    </Scroll>
   );
 }

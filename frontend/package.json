@@ -16,6 +16,7 @@
     "antd": "^4.3.3",
     "bootstrap": "^4.5.0",
     "emotion-theming": "^10.0.27",
+    "firebase": "^7.15.1",
     "framer": "^1.2.2",
     "framer-motion": "^1.11.0",
     "node-sass": "^4.14.1",
@@ -29,7 +30,8 @@
     "rebass": "^4.0.7",
     "rxjs": "^6.5.5",
     "ts-prime": "^0.0.25",
-    "typescript": "~3.7.2"
+    "typescript": "~3.7.2",
+    "zod": "^1.7.0"
   },
   "scripts": {
     "start": "react-scripts start",

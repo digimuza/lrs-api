@@ -3,18 +3,18 @@ import { BrowserRouter as Router, Route } from "react-router-dom";
 import Quiz from "./Pages/Quiz";
 import { ThemeProvider } from "emotion-theming";
 import { ThemePrimary } from "./theme";
-import { Layout } from "./Layout/Layout";
-
+import Landing from './Pages/Landing'
+import './database'
 function App() {
   return (
     <ThemeProvider theme={ThemePrimary}>
       <div className="App">
         <Router>
-          <Route path="/test">
+          <Route path="/quiz">
             <Quiz></Quiz>
           </Route>
           <Route exact path="/">
-            <Layout></Layout>
+            <Landing></Landing>
           </Route>
         </Router>
       </div>

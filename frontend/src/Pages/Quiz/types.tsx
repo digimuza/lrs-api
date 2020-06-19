@@ -19,8 +19,8 @@ export interface Vote extends Person {
   kaip_balsavo: string;
 }
 export enum VoteTicket {
-  YES,
-  NO,
-  IDLE,
-  MISSING
+  FOR = "+",
+  AGAINST = "-",
+  IDLE = "/",
+  MISSING = "."
 }

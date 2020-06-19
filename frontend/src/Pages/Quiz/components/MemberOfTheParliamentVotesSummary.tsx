@@ -1,5 +1,5 @@
 import React, { Fragment, useState, PropsWithChildren } from "react";
-import { Summary } from "../calculations";
+import { Summary, calculateStatistics } from "../calculations";
 import {
   Card,
   Avatar,
@@ -18,6 +18,8 @@ import { getMembers } from "../data";
 import { motion } from "framer-motion";
 import { Grid, Row, Col } from "react-flexbox-grid";
 import { Flex, Heading } from "rebass";
+import * as P from "ts-prime";
+import { VotingInfo } from "../../../database";
 function ParliamentList(props: {
   summary: Summary;
   min: number;
@@ -25,16 +27,17 @@ function ParliamentList(props: {
   index: number;
   onClick: (summary: Summary) => void;
 }) {
-  const { summary, index } = props;
+  const { summary } = props;
   return (
     <List.Item
       actions={[
         <div style={{ width: 200 }}>
-          <Progress percent={Math.round(summary.score/props.max * 100)}></Progress>
+          <Progress
+            percent={Math.round((summary.score / props.max) * 100)}
+          ></Progress>
         </div>,
-        <Button>Daugiau</Button>,
+        <Button onClick={() => props.onClick(summary)}>Daugiau</Button>,
       ]}
-      onClick={() => props.onClick(summary)}
     >
       <List.Item.Meta
         avatar={
@@ -64,9 +67,9 @@ function unParseVote(vote: VoteTicket): string {
       return "Susilaikė";
     case VoteTicket.MISSING:
       return "Nedalivavo";
-    case VoteTicket.YES:
+    case VoteTicket.FOR:
       return "Už";
-    case VoteTicket.NO:
+    case VoteTicket.AGAINST:
       return "Prieš";
   }
 }
@@ -75,7 +78,7 @@ function ParliamentVoteSummary(props: {
   title: string;
   userVotes: Record<string, VoteTicket>;
   items: ReadonlyArray<Summary>;
-  data: Record<string, MainData>;
+  data: ReadonlyArray<VotingInfo>;
   setPage: (page: number) => void;
   selectedParliament: string | null;
   setSelectedParliament: (parliament: string | null) => void;
@@ -94,44 +97,48 @@ function ParliamentVoteSummary(props: {
       render: (text: string) => <span>{text}</span>,
     },
     {
-      title: "Vartotojas",
+      title: "Jūs",
       dataIndex: "user_vote",
       key: "user_vote",
       render: (text: JSX.Element) => text,
     },
     {
-      title: "Politikas",
+      title: `${members[selectedParliament].vardas} ${members[selectedParliament].pavardė}`,
       dataIndex: "politic_vote",
       key: "politic_vote",
       render: (text: JSX.Element) => text,
     },
   ];
 
-  const generatePoliticTag = (xDep: MainData) => {
+  const generatePoliticTag = (xDep: VotingInfo) => {
     const userVote = props.userVotes[xDep.voteId];
     const politicVote =
-      xDep.votes.find((q) => q.asmens_id === selectedParliament)
-        ?.kaip_balsavo || "Nedalivavo";
-    if (politicVote === "Nedalivavo") {
+      xDep.votes.find((q) => q.politicianId === selectedParliament)
+        ?.vote || VoteTicket.MISSING;
+    if (politicVote === VoteTicket.MISSING) {
       return <Tag>Nedalivavo</Tag>;
     }
-    if (politicVote === "Už") {
-      if (userVote === VoteTicket.YES) return <Tag color={"green"}>Už</Tag>;
-      if (userVote === VoteTicket.NO) return <Tag color={"red"}>Už</Tag>;
+    if (politicVote === VoteTicket.FOR) {
+      if (userVote === VoteTicket.FOR) return <Tag color={"green"}>Už</Tag>;
+      if (userVote === VoteTicket.AGAINST) return <Tag color={"red"}>Už</Tag>;
       if (userVote === VoteTicket.IDLE) return <Tag color={"green"}>Už</Tag>;
       if (userVote == null) return <Tag color={"green"}>Už</Tag>;
     }
 
-    if (politicVote === "Prieš") {
-      if (userVote === VoteTicket.YES) return <Tag color={"red"}>Prieš</Tag>;
-      if (userVote === VoteTicket.NO) return <Tag color={"green"}>Prieš</Tag>;
+    if (politicVote === VoteTicket.AGAINST) {
+      if (userVote === VoteTicket.FOR) return <Tag color={"red"}>Prieš</Tag>;
+      if (userVote === VoteTicket.AGAINST) return <Tag color={"green"}>Prieš</Tag>;
       if (userVote === VoteTicket.IDLE) return <Tag color={"green"}>Prieš</Tag>;
       if (userVote == null) return <Tag color={"green"}>Prieš</Tag>;
     }
 
-    if (politicVote === "Nedalivavo") {
+    if (politicVote === VoteTicket.MISSING) {
       return <Tag color={"warning"}>{politicVote}</Tag>;
     }
+
+    if (politicVote === VoteTicket.IDLE) {
+      return <Tag>Susilaikė</Tag>
+    } 
 
     return <Tag>{politicVote}</Tag>;
   };
@@ -158,7 +165,7 @@ function ParliamentVoteSummary(props: {
         ></PageHeader>
       }
     >
-      <Table columns={columns} dataSource={data} />
+      <Table pagination={false} columns={columns} dataSource={data} />
     </LayoutContainer>
   );
 }
@@ -188,7 +195,7 @@ function Block(props: {
   title: string;
   userVotes: Record<string, VoteTicket>;
   items: ReadonlyArray<Summary>;
-  data: Record<string, MainData>;
+  data: ReadonlyArray<VotingInfo>;
 }) {
   const max = Math.max(...props.items.map((c) => c.score));
   const min = Math.min(...props.items.map((c) => c.score));
@@ -196,7 +203,6 @@ function Block(props: {
   const [selectedParliament, setSelectedParliament] = useState<string | null>(
     null
   );
-  const members = getMembers();
   return (
     <Page
       position={"relative"}
@@ -232,7 +238,7 @@ function Block(props: {
 export function MemberOfTheParliamentVotesSummary(props: {
   result: ReadonlyArray<Summary>;
   userVotes: Record<string, VoteTicket>;
-  data: Record<string, MainData>;
+  data: ReadonlyArray<VotingInfo>;
 }) {
   return (
     <Block

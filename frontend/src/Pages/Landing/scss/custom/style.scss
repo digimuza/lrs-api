@@ -1,0 +1,13 @@
+.logo {
+  width: 300px;
+  height: auto;
+}
+
+.fixed-top {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  .logo {
+    width: 200px;
+    height: auto;
+  }
+}

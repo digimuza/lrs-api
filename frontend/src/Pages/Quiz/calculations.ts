@@ -1,80 +1,17 @@
 import { VoteTicket, MainData, Person } from "./types";
 import * as P from 'ts-prime'
 import { getActiveMembers } from "./data";
-function parseVote(vote: string | undefined) {
-    if (vote === "Už") {
-        return VoteTicket.YES;
-    }
-    if (vote === "Susilaikė") {
-        return VoteTicket.IDLE;
-    }
-    if (vote === "Prieš") {
-        return VoteTicket.NO;
-    }
-    return VoteTicket.MISSING;
-}
+import { VotingInfo, Vote } from '../../database'
 
-function compareVotes(seimoVote: VoteTicket, userVote: VoteTicket): number {
-    if (seimoVote === userVote) {
-        return 1.1;
-    }
-    if (userVote === VoteTicket.YES && seimoVote === VoteTicket.NO) {
-        return 0.9;
-    }
-    if (userVote === VoteTicket.NO && seimoVote === VoteTicket.YES) {
-        return 0.9;
-    }
-    if (seimoVote === VoteTicket.IDLE) {
-        return 1;
-    }
-    if (userVote === VoteTicket.YES && seimoVote === VoteTicket.MISSING) {
-        return 0.9;
-    }
-    if (userVote === VoteTicket.NO && seimoVote === VoteTicket.MISSING) {
-        return 1.1;
-    }
-    return 1;
-}
-
-
-export function calculateFractions(userVotes: Record<string, VoteTicket>, data: Record<string, MainData>, members: Record<string, Person>) {
-
-    return P.pipe(
-        Object.values(members),
-        P.groupBy((c) => {
-            return c.frakcija;
-        }),
-        (c) => Object.entries(c),
-        P.map(([frakcija, person]) => {
-            const votes = person.map((c) => {
-                return Object.entries(data).reduce((acc, [voteId, r]) => {
-                    const vote = parseVote(
-                        r.votes.find((q) => q.asmens_id === c.asmens_id)?.kaip_balsavo || ""
-                    );
-                    const userVote = userVotes[voteId];
-                    return acc + compareVotes(vote, userVote);
-                }, 0);
-            });
-
-            return {
-                frakcija,
-                votes,
-                avrg: votes.reduce((acc, current) => acc + current, 0) / votes.length,
-            };
-        }),
-        (q) => ({
-            best: P.pipe(
-                q,
-                P.sortBy((c) => ({ order: "desc", value: c.avrg })),
-                P.take(3)
-            ),
-            worst: P.pipe(
-                q,
-                P.sortBy((c) => ({ order: "asc", value: c.avrg })),
-                P.take(3)
-            ),
-        })
-    );
+function scoreVotes(seimoVote: VoteTicket, userVote: VoteTicket): number {
+    if (seimoVote === userVote) return 10;
+    if (userVote === VoteTicket.FOR && seimoVote === VoteTicket.AGAINST) return -10;
+    if (userVote === VoteTicket.AGAINST && seimoVote === VoteTicket.FOR) return -10;
+    if (userVote === VoteTicket.FOR && seimoVote === VoteTicket.IDLE) return -10;
+    if (userVote === VoteTicket.AGAINST && seimoVote === VoteTicket.IDLE) return 10;
+    if (userVote === VoteTicket.FOR && seimoVote === VoteTicket.MISSING) return -2;
+    if (userVote === VoteTicket.AGAINST && seimoVote === VoteTicket.MISSING) return 2;
+    return 0;
 }
 
 export interface Summary {
@@ -89,25 +26,69 @@ export interface Result {
     result: ReadonlyArray<Summary>
 }
 
-export function calculateVotingScores(userVotes: Record<string, VoteTicket>, data: Record<string, MainData>, members: Record<string, Person>): Result {
+/**
+ * Normalize score to [0,1] range
+ * Initial scores can be negative. Becouse of this reason i need to normalize it to you for UI. For example progress bar
+ * @param scores [-4,1,5]
+ * @param score [1]
+ * @returns 0.5145
+ */
+function scoreNormalizer(scores: ReadonlyArray<number>, score: number) {
+    const min = Math.min(...scores)
+    const calculateAbsolute = () => {
+        if (min > 0) return scores
+        return scores.map((c) => c + Math.abs(min))
+    }
+    const normalized = calculateAbsolute()
+    const max = Math.max(...normalized)
+    return P.clamp((score + Math.abs(min)) / max, { min: 0, max: 1 })
+}
+
+
+export function calculateStatistics(data: Record<string, VotingInfo>) {
+    return Object.values(data).reduce(
+        (acc, current) => {
+            const allVotes = Object.values(current.votes).map((c) => c.vote as VoteTicket)
+            return {
+                total_for: acc.total_for + allVotes.filter((c) => VoteTicket.FOR === c).length,
+                total_against: acc.total_against + allVotes.filter((c) => VoteTicket.AGAINST === c).length,
+                total_idle: acc.total_idle + allVotes.filter((c) => VoteTicket.IDLE === c).length,
+                voted_in_some_way: acc.total_idle + allVotes.filter((c) => [VoteTicket.IDLE, VoteTicket.AGAINST, VoteTicket.FOR].includes(c)).length,
+            };
+        },
+        {
+            total_for: 0,
+            total_against: 0,
+            total_idle: 0,
+            voted_in_some_way: 0,
+        }
+    );
+}
+
+export function parseVote(vote: Vote['vote'] | undefined): VoteTicket {
+    if (vote == null) return VoteTicket.MISSING
+    return vote as VoteTicket
+}
+
+export function calculateVotingScores(userVotes: Record<string, VoteTicket>, data: ReadonlyArray<VotingInfo>, members: Record<string, Person>): Result {
     return P.pipe(
         Object.values(members),
         P.map((member) => {
             return {
                 ...member,
-                score: Object.values(data)
+                score: data
                     .map((c) => {
                         return {
                             userVote: userVotes[c.voteId],
                             voteId: c.voteId,
-                            vote: parseVote(c.votes.find((d) => d.asmens_id === member.asmens_id)?.kaip_balsavo),
-                            participated: c.votes.map((c) => parseVote(c.kaip_balsavo)).filter((c) => [VoteTicket.YES, VoteTicket.NO, VoteTicket.IDLE].includes(c))
+                            vote: parseVote(c.votes.find((d) => d.politicianId === member.asmens_id)?.vote),
+                            participated: c.votes.map((c) => parseVote(c.vote)).filter((c) => [VoteTicket.FOR, VoteTicket.AGAINST, VoteTicket.IDLE].includes(c))
                         };
                     })
                     .reduce((acc, current) => {
                         const scores = {
                             participated: current.participated.length / 141, // 0.7546 
-                            userPreference: compareVotes(current.userVote, current.vote)
+                            userPreference: scoreVotes(current.userVote, current.vote)
                         }
 
                         return acc + (scores.userPreference / scores.participated);
@@ -115,12 +96,19 @@ export function calculateVotingScores(userVotes: Record<string, VoteTicket>, dat
             };
         }),
         (result) => {
+            const scores = result.map((c) => c.score)
             const activeMembers = getActiveMembers()
             return {
                 result: P.pipe(
                     result,
                     P.filter((c) => activeMembers.includes(c.asmens_id)),
                     P.sortBy((c) => ({ order: "desc", value: c.score })),
+                    P.map((c) => {
+                        return {
+                            ...c,
+                            score: scoreNormalizer(scores, c.score)
+                        }
+                    })
                 )
             }
         }
