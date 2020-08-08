@@ -4,9 +4,10 @@ import { BehaviorSubject } from "rxjs";
 import { YouTubeView } from "../../../Shared/YoutubeVideo";
 import { VoteTicket } from "../types";
 import { VotingInfo } from "../../../database";
-import { Row, Col, Card, Typography, Button, Collapse } from "antd";
+import { Row, Col, Card, Typography, Button, Collapse, Progress } from "antd";
 export function Question(props: {
   data: VotingInfo;
+  totalItems: number;
   onSubmit: (value: { id: string; vote: VoteTicket }) => void;
   index: number;
   current: number;
@@ -20,11 +21,27 @@ export function Question(props: {
 
   return (
     <Scroll position={"relative"} width={"100%"} height={"100vh"}>
+
       <Row justify={"center"} align={"middle"}>
         <Col xl={6}></Col>
         <Col xl={12}>
+          <Row style={{ marginTop: 10, marginBottom: 10 }}>
+            <Col span={4}>
+              <img
+                width={200}
+                height={"auto"}
+                src="images/logo.png"
+                alt=""
+                className="pb-2"
+              />
+            </Col>
+            <Col></Col>
+          </Row>
           <Card
-            cover={
+            
+          >
+            <Typography.Title style={{ fontSize: 24, marginBottom: 25 }}>{props.data.order}</Typography.Title>
+            {
               props.data.youtubeUrl ? (
                 showVideoIf ? (
                   <YouTubeView
@@ -34,8 +51,6 @@ export function Question(props: {
                 ) : null
               ) : null
             }
-          >
-            <Typography.Title>{props.data.order}</Typography.Title>
             <Collapse bordered={false}>
               <Collapse.Panel header={"Daugiau informacijos"} key="1">
                 <Typography.Text>{props.data.fullOrder}</Typography.Text>
@@ -81,7 +96,7 @@ export function Question(props: {
                     });
                   }}
                 >
-                  <b>Susilaikau</b>
+                  <b>Praleisti</b>
                 </Button>
               </Col>
               <Col span={8}>
@@ -102,6 +117,16 @@ export function Question(props: {
                 >
                   <b>Prieš</b>
                 </Button>
+              </Col>
+            </Row>
+            <Row>
+              <Col span={24}>
+                <Progress percent={parseFloat((((props.index + 1) / props.totalItems) * 100).toFixed(0))} size={'default'} />
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                  <Typography.Title style={{ fontSize: 14 }}>
+                    {props.index + 1}/{props.totalItems}
+                  </Typography.Title>
+                </div>
               </Col>
             </Row>
           </Card>

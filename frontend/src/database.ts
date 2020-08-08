@@ -1,11 +1,12 @@
 import { initializeApp, firestore } from 'firebase'
 import * as z from 'zod'
-function getFirebaseConfig() {
-    const cfg = process.env.REACT_APP_FIREBASE
-    if (cfg == null) throw new Error("Failed to load env variables")
-    return JSON.parse(cfg)
-}
-const app = initializeApp(getFirebaseConfig())
+
+const app = initializeApp({
+    apiKey: "AIzaSyDoMnDry1QX37MqrwhGa1UB-TlY7d3L5Ak",
+    databaseURL: "https://ltr-test-4d936.firebaseio.com",
+    projectId: "ltr-test-4d936",
+    storageBucket: "ltr-test-4d936.appspot.com",
+  })
 const database = firestore(app)
 
 const voteSchema = z.object({

@@ -1,25 +1,51 @@
-import React, { Fragment, useState, PropsWithChildren } from "react";
-import { Summary, calculateStatistics } from "../calculations";
+import React, { useState, PropsWithChildren } from "react";
+import * as P from 'ts-prime'
+import { Summary } from "../calculations";
 import {
-  Card,
   Avatar,
   Progress,
   List,
   Button,
   Layout,
-  Typography,
   PageHeader,
   Tag,
-  Table,
+  Row,
+  Col,
+  Grid,
 } from "antd";
-import { Scroll, Frame, Page } from "framer";
-import { MainData, VoteTicket } from "../types";
+import { Scroll, Page } from "framer";
+import { VoteTicket } from "../types";
 import { getMembers } from "../data";
-import { motion } from "framer-motion";
-import { Grid, Row, Col } from "react-flexbox-grid";
-import { Flex, Heading } from "rebass";
-import * as P from "ts-prime";
+import { Link } from "rebass";
 import { VotingInfo } from "../../../database";
+
+
+function tableColorPickByVotes(userVote: VoteTicket, parliamentMemberVote: VoteTicket) {
+  const secondary = (v: VoteTicket) => {
+    return [VoteTicket.IDLE, VoteTicket.MISSING].includes(v)
+  }
+
+  if (userVote === parliamentMemberVote) {
+    return {
+      rawColor: '#B2FF59',
+      color: "green"
+    }
+  }
+
+  if ((secondary(userVote) || secondary(parliamentMemberVote)) && userVote !== parliamentMemberVote) {
+    return {
+      rawColor: '#fff',
+      color: "white"
+    }
+  }
+
+  return {
+    rawColor: '#FF5722',
+    color: "red"
+  }
+}
+
+
 function ParliamentList(props: {
   summary: Summary;
   min: number;
@@ -119,38 +145,41 @@ function ParliamentVoteSummary(props: {
       return <Tag>Nedalivavo</Tag>;
     }
     if (politicVote === VoteTicket.FOR) {
-      if (userVote === VoteTicket.FOR) return <Tag color={"green"}>Už</Tag>;
-      if (userVote === VoteTicket.AGAINST) return <Tag color={"red"}>Už</Tag>;
-      if (userVote === VoteTicket.IDLE) return <Tag color={"green"}>Už</Tag>;
-      if (userVote == null) return <Tag color={"green"}>Už</Tag>;
+      if (userVote === VoteTicket.FOR) return <Tag>Už</Tag>;
+      if (userVote === VoteTicket.AGAINST) return <Tag>Už</Tag>;
+      if (userVote === VoteTicket.IDLE) return <Tag>Už</Tag>;
+      if (userVote == null) return <Tag>Už</Tag>;
     }
 
     if (politicVote === VoteTicket.AGAINST) {
-      if (userVote === VoteTicket.FOR) return <Tag color={"red"}>Prieš</Tag>;
-      if (userVote === VoteTicket.AGAINST) return <Tag color={"green"}>Prieš</Tag>;
-      if (userVote === VoteTicket.IDLE) return <Tag color={"green"}>Prieš</Tag>;
-      if (userVote == null) return <Tag color={"green"}>Prieš</Tag>;
-    }
-
-    if (politicVote === VoteTicket.MISSING) {
-      return <Tag color={"warning"}>{politicVote}</Tag>;
+      if (userVote === VoteTicket.FOR) return <Tag>Prieš</Tag>;
+      if (userVote === VoteTicket.AGAINST) return <Tag>Prieš</Tag>;
+      if (userVote === VoteTicket.IDLE) return <Tag>Prieš</Tag>;
+      if (userVote == null) return <Tag>Prieš</Tag>;
     }
 
     if (politicVote === VoteTicket.IDLE) {
       return <Tag>Susilaikė</Tag>
-    } 
+    }
 
     return <Tag>{politicVote}</Tag>;
   };
 
-  const data = Object.values(props.data).map((c, index) => {
+  const data = Object.values(props.data).filter((w) => {
+    return props.userVotes[w.voteId] !== VoteTicket.IDLE && props.userVotes[w.voteId] != null
+  }).map((c, index) => {
+    const politicVote =
+      c.votes.find((q) => q.politicianId === selectedParliament)
+        ?.vote || VoteTicket.MISSING;
     return {
       key: index,
       user_vote: (
-        <Tag color={"green"}>
+        <Tag>
           {unParseVote(props.userVotes[c.voteId]) || "Susilaikė"}
         </Tag>
       ),
+      voteId: c.voteId,
+      color: tableColorPickByVotes(props.userVotes[c.voteId], politicVote as VoteTicket),
       order: c.order,
       politic_vote: generatePoliticTag(c),
     };
@@ -161,11 +190,49 @@ function ParliamentVoteSummary(props: {
       header={
         <PageHeader
           title={`${parliament.vardas} ${parliament.pavardė}`}
+          footer={<Link href={`https://www.lrs.lt/sip/portal.show?p_r=35299&p_k=1&p_a=498&p_asm_id=${parliament.asmens_id}`}>Apie {`${parliament.vardas} ${parliament.pavardė}`}</Link>}
           onBack={() => setPage(0)}
         ></PageHeader>
       }
     >
-      <Table pagination={false} columns={columns} dataSource={data} />
+      <List>
+        <List.Item>
+          <Row style={{ width: "100%" }}>
+            <Col span={14}><div style={{ padding: 10, display: "flex", justifyContent: "flex-start", alignItems: 'center' }}>
+              <strong>Įstatymas</strong>
+            </div></Col>
+            <Col span={5}>
+              <div style={{ display: "flex", justifyContent: "center", alignItems: 'center' }}>
+                <strong>Politiko balsas</strong>
+              </div>
+            </Col>
+            <Col span={5}>
+              <div style={{ height: "100%", display: "flex", justifyContent: "center", alignItems: 'center' }}>
+                <strong>Jūs</strong>
+              </div>
+            </Col>
+          </Row>
+        </List.Item>
+        {P.pipe(data, P.sortBy((q) => 5 + ['green', 'red'].reverse().indexOf(q.color.color))).reverse().map((q) => {
+          return <List.Item style={{ background: q.color.rawColor }}>
+            <Row style={{ width: "100%" }}>
+              <Col span={14}><div style={{ padding: 10 }}>
+                {q.order}
+              </div></Col>
+              <Col span={5}>
+                <div style={{ height: "100%", display: "flex", justifyContent: "flex-end", alignItems: 'center' }}>
+                  {q.politic_vote}
+                </div>
+              </Col>
+              <Col span={5}>
+                <div style={{ height: "100%", display: "flex", justifyContent: "flex-end", alignItems: 'center' }}>
+                  {q.user_vote}
+                </div>
+              </Col>
+            </Row>
+          </List.Item>
+        })}
+      </List>
     </LayoutContainer>
   );
 }
@@ -173,20 +240,18 @@ function ParliamentVoteSummary(props: {
 function LayoutContainer(props: PropsWithChildren<{ header: JSX.Element }>) {
   return (
     <Scroll position={"relative"} width={"100%"} height={"100vh"}>
-      <Grid>
-        <Row>
-          <Col xl={3}></Col>
-          <Col xl={6}>
-            <Layout>
-              {props.header}
-              <Layout.Content style={{ padding: 20 }}>
-                {props.children}
-              </Layout.Content>
-            </Layout>
-          </Col>
-          <Col xl={3}></Col>
-        </Row>
-      </Grid>
+      <Row>
+        <Col xl={3}></Col>
+        <Col xl={6}>
+          <Layout>
+            {props.header}
+            <Layout.Content style={{ padding: 20 }}>
+              {props.children}
+            </Layout.Content>
+          </Layout>
+        </Col>
+        <Col xl={3}></Col>
+      </Row>
     </Scroll>
   );
 }
