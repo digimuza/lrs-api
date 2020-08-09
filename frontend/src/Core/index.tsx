@@ -21,6 +21,7 @@ export function Watch<T>(props: {
   data: Observable<T> | Promise<T>;
   children: (data: T) => any;
   fallback?: JSX.Element | null;
+  forceLoading?: boolean
   error?: (props: { error: Error }) => JSX.Element | null;
 }) {
   const [error, setError] = useState<Error | null>(null);
@@ -34,6 +35,7 @@ export function Watch<T>(props: {
   );
   if (error)
     return props.error ? props.error({ error }) : <div>Got error!!!</div>;
+  if (props.forceLoading) return props.fallback || null
   if (value == null) return props.fallback || null;
   return <Fragment>{props.children(value)}</Fragment>;
 }

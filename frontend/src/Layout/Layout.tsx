@@ -1,13 +1,11 @@
-import React, { PropsWithChildren } from "react";
+import React from "react";
 import { Grid, Row, Col } from "react-flexbox-grid";
-
-
 
 export function Layout() {
   return (
     <Grid fluid>
       <Row>
-        <Col xl={12}>
+        <Col xl={12} >
           <div className={"asd"}>asd</div>
         </Col>
       </Row>

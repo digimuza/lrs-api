@@ -5,6 +5,7 @@ import { ThemeProvider } from "emotion-theming";
 import { ThemePrimary } from "./theme";
 import Landing from './Pages/Landing'
 import './database'
+
 function App() {
   return (
     <ThemeProvider theme={ThemePrimary}>

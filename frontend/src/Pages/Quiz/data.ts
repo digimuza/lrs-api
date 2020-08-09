@@ -11,6 +11,7 @@ export function getActiveMembers(): ReadonlyArray<string> {
 export function getQuestions() {
     return P.indexBy((mock as unknown) as MainData[], (c) => c.voteId);
 }
+
 export function getMembers() {
     return P.indexBy((members as unknown) as Person[], (c) => c.asmens_id);
 }
