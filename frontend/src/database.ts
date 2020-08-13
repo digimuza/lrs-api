@@ -1,5 +1,6 @@
 import { initializeApp, firestore } from 'firebase'
 import * as z from 'zod'
+import { BehaviorSubject } from 'rxjs'
 
 const app = initializeApp({
     apiKey: "AIzaSyDoMnDry1QX37MqrwhGa1UB-TlY7d3L5Ak",
@@ -7,7 +8,7 @@ const app = initializeApp({
     projectId: "ltr-test-4d936",
     storageBucket: "ltr-test-4d936.appspot.com",
   })
-const database = firestore(app)
+export const database = firestore(app)
 
 const voteSchema = z.object({
     voteId: z.string(),
@@ -16,6 +17,18 @@ const voteSchema = z.object({
     vote: z.enum(['+', "-", '/', '.']),
     displayName: z.string()
 })
+export const schemaPolticianPartyData = z.object({
+    rowId: z.string(),
+    displayName: z.string(),
+    politicalPartyNumber: z.string(),
+    politicalPartyName: z.string(),
+    vanr: z.string().optional(),
+    va: z.string().optional(),
+    iv: z.string().optional()
+})
+export interface PolticianPartyData extends z.TypeOf<typeof schemaPolticianPartyData> {}
+export const politiciansParties = new BehaviorSubject<Record<string, PolticianPartyData> | null>(null)
+
 
 export type Vote = z.TypeOf<typeof voteSchema>
 

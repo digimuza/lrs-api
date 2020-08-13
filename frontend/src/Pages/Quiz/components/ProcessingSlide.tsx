@@ -3,7 +3,8 @@ import { Scroll } from "framer";
 import { Typography } from "antd";
 import { interval } from "rxjs";
 import * as RXO from "rxjs/operators";
-
+import { politiciansParties, PolticianPartyData } from "../../../database";
+import * as P from 'ts-prime'
 export function ProccesingSilde(props: {
     isActive: boolean
     next: () => void
@@ -29,6 +30,16 @@ export function ProccesingSilde(props: {
                 props.next()
             })).subscribe((q)=> {
                 setState(q)
+            })
+            fetch("/data/normalize.json").then(async (q)=>{
+                const result = await q.json() as ReadonlyArray<PolticianPartyData>
+                console.log(result)
+                politiciansParties.next(P.indexBy(
+                    result,
+                    (q) => {
+                        return q.displayName.toLowerCase()
+                    }
+                ))
             })
         }
     }, [props.isActive])

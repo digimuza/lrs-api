@@ -5,6 +5,7 @@ import { ThemeProvider } from "emotion-theming";
 import { ThemePrimary } from "./theme";
 import Landing from './Pages/Landing'
 import './database'
+import { Test } from "./Pages/Quiz/test";
 
 function App() {
   return (
@@ -13,6 +14,9 @@ function App() {
         <Router>
           <Route path="/quiz">
             <Quiz></Quiz>
+          </Route>
+          <Route path="/test">
+            <Test></Test>
           </Route>
           <Route exact path="/">
             <Landing></Landing>

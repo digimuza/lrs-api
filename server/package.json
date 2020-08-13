@@ -24,14 +24,8 @@
     "@nestjs/common": "^7.0.0",
     "@nestjs/core": "^7.0.0",
     "@nestjs/platform-express": "^7.0.0",
-    "@prisma/cli": "^2.0.0-beta.5",
-    "@prisma/client": "^2.0.0-beta.5",
-    "@types/better-sqlite3": "^5.4.0",
-    "@types/mysql": "^2.15.10",
     "@types/node-fetch": "^2.5.7",
-    "@types/rethinkdb": "^2.3.14",
     "axios": "^0.19.2",
-    "better-sqlite3": "^7.0.1",
     "fs-jetpack": "^2.4.0",
     "iterparse": "^0.0.7",
     "ix": "^2.5.5",
@@ -42,8 +36,8 @@
     "rethinkdb": "^2.4.2",
     "rimraf": "^3.0.2",
     "rxjs": "^6.5.4",
-    "sqlite3": "^4.2.0",
-    "typeorm": "^0.2.24"
+    "ts-prime": "^0.0.28",
+    "zod": "^1.10.2"
   },
   "resolutions": {
     "tslib": "1.11.2"

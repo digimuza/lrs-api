@@ -1,4 +1,4 @@
-import React, { useState, PropsWithChildren } from "react";
+import React, { useState, PropsWithChildren, Fragment } from "react";
 import * as P from 'ts-prime'
 import { Summary } from "../calculations";
 import {
@@ -17,9 +17,11 @@ import { Scroll, Page } from "framer";
 import { VoteTicket } from "../types";
 import { getMembers } from "../data";
 import { Link } from "rebass";
-import { VotingInfo } from "../../../database";
-
-
+import { VotingInfo, politiciansParties } from "../../../database";
+import { CalculateRawScores, CalculateNormalizedPoliticianScore, GetActivePoliticans, CalculatePartyScores, NormalizedPoliticianScore } from "../test";
+import { BehaviorSubject } from "rxjs";
+import { Watch } from "../../../Core";
+import * as RXO from 'rxjs/operators'
 function tableColorPickByVotes(userVote: VoteTicket, parliamentMemberVote: VoteTicket) {
   const secondary = (v: VoteTicket) => {
     return [VoteTicket.IDLE, VoteTicket.MISSING].includes(v)
@@ -47,11 +49,11 @@ function tableColorPickByVotes(userVote: VoteTicket, parliamentMemberVote: VoteT
 
 
 function ParliamentList(props: {
-  summary: Summary;
+  summary: NormalizedPoliticianScore[number];
   min: number;
   max: number;
   index: number;
-  onClick: (summary: Summary) => void;
+  onClick: (summary: NormalizedPoliticianScore[number]) => void;
 }) {
   const { summary } = props;
   return (
@@ -59,7 +61,7 @@ function ParliamentList(props: {
       actions={[
         <div style={{ width: 200 }}>
           <Progress
-            percent={Math.round((summary.score / props.max) * 100)}
+            percent={Math.round(summary.score * 100)}
           ></Progress>
         </div>,
         <Button onClick={() => props.onClick(summary)}>Daugiau</Button>,
@@ -72,16 +74,15 @@ function ParliamentList(props: {
               "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=2048&q=20"
             }
           >
-            {summary.vardas.slice(0, 1)}
+            {summary.displayName.slice(0, 1)}
           </Avatar>
         }
         description={
           <span>
-            <b>Frakcija:</b>
-            {` ${summary.frakcija}`}{" "}
+            {` ${summary.party}`}{" "}
           </span>
         }
-        title={`${summary.vardas} ${summary.pavardė}`}
+        title={summary.displayName}
       ></List.Item.Meta>
     </List.Item>
   );
@@ -256,6 +257,15 @@ function LayoutContainer(props: PropsWithChildren<{ header: JSX.Element }>) {
   );
 }
 
+
+
+
+interface PoliticianWithScore {
+  score: number;
+  displayName: string;
+  fraction: string;
+  politicianId: string;
+}
 function Block(props: {
   title: string;
   userVotes: Record<string, VoteTicket>;
@@ -265,6 +275,8 @@ function Block(props: {
   const max = Math.max(...props.items.map((c) => c.score));
   const min = Math.min(...props.items.map((c) => c.score));
   const [page, setPage] = useState(0);
+
+
   const [selectedParliament, setSelectedParliament] = useState<string | null>(
     null
   );
@@ -276,26 +288,65 @@ function Block(props: {
       width={"100%"}
       height={"100vh"}
     >
-      <LayoutContainer header={<PageHeader title={"Rezultatai"}></PageHeader>}>
-        {props.items.map((summary, index) => (
-          <ParliamentList
-            onClick={(summary) => {
-              setSelectedParliament(summary.asmens_id);
-              setPage(1);
-            }}
-            index={index}
-            summary={summary}
-            min={min}
-            max={max}
-          ></ParliamentList>
-        ))}
-      </LayoutContainer>
-      <ParliamentVoteSummary
-        setPage={setPage}
-        selectedParliament={selectedParliament}
-        setSelectedParliament={setSelectedParliament}
-        {...props}
-      ></ParliamentVoteSummary>
+      <Watch data={politiciansParties.pipe(RXO.filter(P.isDefined))}>
+        {(data) => {
+          const indexed = P.indexBy(props.data, (c) => c.voteId)
+          const rawScore = CalculateRawScores(indexed, props.userVotes, data)
+          console.log({
+            rawScore
+          })
+          const politiciansScores = CalculateNormalizedPoliticianScore(rawScore)
+          console.log({
+            politiciansScores
+          })
+          const partiesScores = CalculatePartyScores(politiciansScores, data)
+          console.log({
+            partiesScores
+          })
+          return <Fragment>
+            <LayoutContainer header={<PageHeader title={"Rezultatai"}></PageHeader>}>
+              <List>
+                {partiesScores.map((q) => {
+                  return <List.Item extra={
+                    <div style={{ width: "100%" }}>
+                      <Progress
+                        percent={Math.round(q.score * 100)}
+                      ></Progress>
+                    </div>
+                  } actions={
+                    [
+                      <Button >Daugiau</Button>,
+                    ]
+                  }>
+                    <List.Item.Meta title={q.party}></List.Item.Meta>
+                  </List.Item>
+                })}
+              </List>
+              {/* {P.pipe(
+                politiciansScores,
+                P.take(141)
+              ).map((summary, index) => (
+                <ParliamentList
+                  onClick={(summary) => {
+                    setSelectedParliament(summary.id);
+                    setPage(1);
+                  }}
+                  index={index}
+                  summary={summary}
+                  min={min}
+                  max={max}
+                ></ParliamentList>
+              ))} */}
+            </LayoutContainer>
+            <ParliamentVoteSummary
+              setPage={setPage}
+              selectedParliament={selectedParliament}
+              setSelectedParliament={setSelectedParliament}
+              {...props}
+            ></ParliamentVoteSummary>
+          </Fragment>
+        }}
+      </Watch>
     </Page>
   );
 }
