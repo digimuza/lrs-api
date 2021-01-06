@@ -28,7 +28,7 @@
     "@prisma/client": "^2.0.0-beta.5",
     "@types/better-sqlite3": "^5.4.0",
     "@types/node-fetch": "^2.5.7",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "better-sqlite3": "^7.0.1",
     "iterparse": "^0.0.4",
     "ix": "2.5.5",
